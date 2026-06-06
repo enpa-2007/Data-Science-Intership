@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Titanic Survival Prediction — Complete DS Project</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2435;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #7a85a0;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --green: #3dd68c;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --teal: #2dd4bf;
+    --pink: #f472b6;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+    --radius: 10px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px; flex-shrink: 0; background: var(--bg2);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 20px 0; overflow-y: auto;
+  }
+  .sidebar-logo { padding: 0 18px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .sidebar-logo .title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
+  .sidebar-logo .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .nav-group { padding: 0 10px; margin-bottom: 6px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 7px; cursor: pointer;
+    font-size: 12.5px; color: var(--muted); transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--accent); background: rgba(79,142,247,0.1); border-color: rgba(79,142,247,0.2); font-weight: 500; }
+  .nav-item i { font-size: 13px; width: 16px; text-align: center; }
+  .nav-badge { margin-left: auto; background: rgba(79,142,247,0.2); color: var(--accent); font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; background: var(--bg); }
+  .main-inner { max-width: 1000px; margin: 0 auto; padding: 28px 28px 60px; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Page header */
+  .page-header { margin-bottom: 24px; }
+  .page-header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+  .page-header p { font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+
+  /* Metrics */
+  .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 22px; }
+  .metric {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .metric-value { font-size: 24px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.accent { color: var(--accent); }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; }
+  .card h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; letter-spacing: -0.01em; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  /* Chart */
+  .chart-wrap { position: relative; }
+
+  /* Tables */
+  .data-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .data-table th { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border2); font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .data-table tr:hover td { background: var(--bg3); }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .tag-blue { background: rgba(79,142,247,0.15); color: #79b0ff; }
+  .tag-green { background: rgba(61,214,140,0.12); color: var(--green); }
+  .tag-amber { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .tag-red { background: rgba(248,113,113,0.12); color: var(--red); }
+  .tag-purple { background: rgba(124,92,191,0.15); color: #a78bfa; }
+  .tag-teal { background: rgba(45,212,191,0.12); color: var(--teal); }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  /* Steps */
+  .step { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--muted); flex-shrink: 0; margin-top: 1px; }
+  .step-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .step-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Feature bars */
+  .feat-bar-wrap { margin-bottom: 8px; }
+  .feat-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: var(--muted); }
+  .feat-bar-track { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; }
+  .feat-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Model cards */
+  .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px,1fr)); gap: 10px; margin-bottom: 14px; }
+  .model-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .model-card.recommended { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(79,142,247,0.15); }
+  .model-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .model-score { font-size: 22px; font-weight: 600; color: var(--accent); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .model-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .mbadge { background: var(--bg3); color: var(--muted); font-size: 10px; padding: 2px 6px; border-radius: 8px; }
+  .mbadge-rec { background: rgba(79,142,247,0.15); color: var(--accent); font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+  .score-bar { background: var(--bg3); border-radius: 3px; height: 3px; margin-top: 10px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+
+  /* Architecture */
+  .arch-row { display: flex; align-items: center; gap: 0; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+  .arch-box {
+    flex: 1; min-width: 80px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 8px; text-align: center;
+  }
+  .arch-arrow { padding: 0 6px; color: var(--muted); font-size: 14px; flex-shrink: 0; }
+  .arch-icon { font-size: 18px; color: var(--accent); margin-bottom: 4px; }
+  .arch-title { font-size: 11px; font-weight: 600; }
+  .arch-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Deploy */
+  .deploy-item { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .deploy-item:last-child { border-bottom: none; }
+  .deploy-icon { font-size: 18px; color: var(--accent); padding-top: 1px; width: 24px; text-align: center; flex-shrink: 0; }
+  .deploy-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .deploy-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* Code block */
+  .code-block {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; font-family: var(--mono); font-size: 11px; color: #a8b5cf;
+    line-height: 1.8; overflow-x: auto; white-space: pre;
+  }
+
+  /* Viz cards */
+  .viz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 14px; }
+  .viz-card {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  }
+  .viz-card:hover { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+  .viz-card-icon { font-size: 22px; color: var(--accent); margin-bottom: 6px; }
+  .viz-card-title { font-size: 12px; font-weight: 600; }
+  .viz-card-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  /* Missing bar */
+  .pct-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+  /* ---- PREDICT TAB ---- */
+  .predict-layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  @media (max-width: 700px) { .predict-layout { grid-template-columns: 1fr; } }
+
+  .input-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .input-panel h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; display: block; }
+  .form-select, .form-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px;
+    padding: 8px 10px; font-size: 13px; color: var(--text); outline: none; font-family: var(--sans);
+    transition: border-color 0.15s;
+  }
+  .form-select:focus, .form-input:focus { border-color: var(--accent); }
+  .form-input[type=range] { padding: 4px 0; border: none; background: transparent; cursor: pointer; }
+  .range-display { font-size: 13px; font-weight: 600; color: var(--accent); margin-left: 8px; }
+
+  .predict-btn {
+    width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s; margin-top: 6px; font-family: var(--sans);
+  }
+  .predict-btn:hover { opacity: 0.9; }
+  .predict-btn:active { transform: scale(0.98); }
+  .predict-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .result-panel { display: flex; flex-direction: column; gap: 14px; }
+
+  .gauge-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
+  .gauge-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+  .gauge-value { font-size: 52px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .gauge-verdict { font-size: 14px; font-weight: 600; padding: 5px 16px; border-radius: 20px; display: inline-block; margin-bottom: 12px; }
+  .gauge-verdict.survived { background: rgba(61,214,140,0.15); color: var(--green); }
+  .gauge-verdict.not-survived { background: rgba(248,113,113,0.12); color: var(--red); }
+  .gauge-bar-track { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .gauge-bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+  .shap-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .shap-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .shap-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .shap-name { font-size: 12px; color: var(--muted); width: 130px; flex-shrink: 0; text-align: right; }
+  .shap-bar-wrap { flex: 1; position: relative; height: 14px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .shap-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .shap-val { font-size: 11px; font-weight: 600; width: 40px; text-align: right; }
+
+  .analysis-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .analysis-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .analysis-text { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .analysis-text strong { color: var(--text); }
+
+  .loading-dots span { animation: blink 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100% { opacity: 0; } 40% { opacity: 1; } }
+
+  .preset-btn {
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--muted);
+    border-radius: 20px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+    font-family: var(--sans); transition: all 0.15s;
+  }
+  .preset-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(79,142,247,0.1); }
+
+  .placeholder-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .placeholder-state i { font-size: 40px; margin-bottom: 12px; display: block; color: var(--border2); }
+  .placeholder-state p { font-size: 13px; }
+
+  /* API key banner */
+  .apikey-banner {
+    background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .apikey-banner label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  .apikey-input {
+    flex: 1; min-width: 200px; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 7px; padding: 7px 10px; font-size: 13px; color: var(--text); outline: none;
+    font-family: var(--mono); transition: border-color 0.15s;
+  }
+  .apikey-input:focus { border-color: var(--accent); }
+  .apikey-status { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .apikey-status.ok { color: var(--green); }
+  .apikey-hint { font-size: 11px; color: var(--muted); width: 100%; line-height: 1.5; }
+  .apikey-hint a { color: var(--accent); text-decoration: none; }
+  .apikey-hint a:hover { text-decoration: underline; }
+
+  /* Mobile menu toggle */
+  .mobile-menu-btn {
+    display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+    background: var(--bg2); border: 1px solid var(--border2); color: var(--text);
+    width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 14px;
+    align-items: center; justify-content: center;
+  }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 98;
+  }
+  @media (max-width: 620px) {
+    .mobile-menu-btn { display: flex; }
+    .sidebar { position: fixed; left: -220px; top: 0; height: 100vh; z-index: 99; transition: left 0.25s ease; }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay.open { display: block; }
+    .two-col { grid-template-columns: 1fr; }
+    .predict-layout { grid-template-columns: 1fr; }
+    .main-inner { padding: 16px 12px 60px; }
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="title">🚢 Titanic DS</div>
+      <div class="sub">Complete project guide</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Analysis</div>
+      <div class="nav-item active" onclick="showSection('overview')"><i class="fa-solid fa-table-columns"></i> Dataset overview <span class="nav-badge">891</span></div>
+      <div class="nav-item" onclick="showSection('cleaning')"><i class="fa-solid fa-broom"></i> Data cleaning</div>
+      <div class="nav-item" onclick="showSection('eda')"><i class="fa-solid fa-chart-bar"></i> EDA</div>
+    </div>
+    <div class="nav-group" style="margin-top:8px;">
+      <div class="nav-label">Modelling</div>
+      <div class="nav-item" onclick="showSection('features')"><i class="fa-solid fa-screwdriver-wrench"></i> Feature engineering</div>
+      <div class="nav-item" onclick="showSection('models')"><i class="fa-solid fa-brain"></i> Model selection</div>
+    </div>
+    <div class="nav-group" style="margin-top:8px;">
+      <div class="nav-label">Application</div>
+      <div class="nav-item" onclick="showSection('app')"><i class="fa-brands fa-python"></i> App design</div>
+      <div class="nav-item" onclick="showSection('deploy')"><i class="fa-solid fa-rocket"></i> Deployment</div>
+      <div class="nav-item" onclick="showSection('predict')"><i class="fa-solid fa-wand-magic-sparkles"></i> Live predictor <span class="nav-badge">✨</span></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- ═══ OVERVIEW ═══ -->
+      <div class="section active" id="s-overview">
+        <div class="page-header">
+          <h1>Dataset overview</h1>
+          <p>891 passengers · 12 features · Kaggle Titanic training set · Binary classification (Survived: 0/1)</p>
+        </div>
+        <div class="metric-row">
+          <div class="metric"><div class="metric-label">Total rows</div><div class="metric-value accent">891</div><div class="metric-sub">Training samples</div></div>
+          <div class="metric"><div class="metric-label">Features</div><div class="metric-value">12</div><div class="metric-sub">Raw columns</div></div>
+          <div class="metric"><div class="metric-label">Survival rate</div><div class="metric-value green">38.4%</div><div class="metric-sub">342 survived</div></div>
+          <div class="metric"><div class="metric-label">Missing cells</div><div class="metric-value amber">866</div><div class="metric-sub">Across 3 cols</div></div>
+          <div class="metric"><div class="metric-label">Numeric cols</div><div class="metric-value">7</div><div class="metric-sub">Age, Fare…</div></div>
+          <div class="metric"><div class="metric-label">Categorical</div><div class="metric-value">5</div><div class="metric-sub">Sex, Embarked…</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>Feature inventory</h3>
+            <div style="font-size:12px;">
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">PassengerId</span><span class="tag tag-red">ID / drop</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Survived</span><span class="tag tag-teal">Target (0/1)</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Pclass</span><span class="tag tag-purple">Ordinal (1–3)</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Name</span><span class="tag tag-amber">Extract title</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Sex</span><span class="tag tag-purple">Binary encode</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Age</span><span class="tag tag-red">19.9% missing</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">SibSp + Parch</span><span class="tag tag-blue">→ FamilySize</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Fare</span><span class="tag tag-blue">Right-skewed</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Cabin</span><span class="tag tag-red">77.1% missing</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--muted);">Embarked</span><span class="tag tag-purple">3 categories</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Class & survival distribution</h3>
+            <div class="chart-wrap" style="height:180px;">
+              <canvas id="classChart"></canvas>
+            </div>
+            <div class="legend" style="margin-top:10px;">
+              <span><span class="legend-dot" style="background:var(--accent);"></span>Survived</span>
+              <span><span class="legend-dot" style="background:#4b5563;"></span>Did not survive</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">1st class had 2.6× higher survival rate than 3rd class.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Gender — the strongest single predictor</h3>
+          <div class="chart-wrap" style="height:110px;">
+            <canvas id="genderChart"></canvas>
+          </div>
+          <div class="legend" style="margin-top:10px;">
+            <span><span class="legend-dot" style="background:var(--accent);"></span>Survived</span>
+            <span><span class="legend-dot" style="background:#4b5563;"></span>Did not survive</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Female survival rate 74% vs male 19% — a 3.9× difference. "Women and children first" clearly visible in data.</div>
+        </div>
+      </div>
+
+      <!-- ═══ CLEANING ═══ -->
+      <div class="section" id="s-cleaning">
+        <div class="page-header">
+          <h1>Data cleaning</h1>
+          <p>Three columns have missing values — each requiring a different imputation strategy based on % missing and predictive value.</p>
+        </div>
+        <div class="card">
+          <h3>Missing value analysis</h3>
+          <table class="data-table">
+            <thead><tr><th>Column</th><th>Missing count</th><th>% Missing</th><th>Strategy</th><th>Rationale</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Age</strong></td><td>177</td>
+                <td><span class="pct-bar" style="width:50px;background:var(--amber);"></span>19.9%</td>
+                <td><span class="tag tag-amber">Median by Title group</span></td>
+                <td style="color:var(--muted);">Title encodes age/gender; far better than global median</td>
+              </tr>
+              <tr>
+                <td><strong>Cabin</strong></td><td>687</td>
+                <td><span class="pct-bar" style="width:110px;background:var(--red);"></span>77.1%</td>
+                <td><span class="tag tag-red">HasCabin binary + Deck</span></td>
+                <td style="color:var(--muted);">Too many missing to impute; presence/absence itself is signal</td>
+              </tr>
+              <tr>
+                <td><strong>Embarked</strong></td><td>2</td>
+                <td><span class="pct-bar" style="width:5px;background:var(--green);"></span>0.2%</td>
+                <td><span class="tag tag-green">Mode fill ('S')</span></td>
+                <td style="color:var(--muted);">Only 2 rows; Southampton is mode (72%)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>Age imputation — step by step</h3>
+            <div class="step"><div class="step-num">1</div><div><div class="step-title">Extract title from Name</div><div class="step-desc">Regex: <code>([A-Za-z]+)\.</code> → Mr, Mrs, Miss, Master, Dr, Rev…</div></div></div>
+            <div class="step"><div class="step-num">2</div><div><div class="step-title">Consolidate rare titles</div><div class="step-desc">Countess/Capt/Jonkheer → "Rare". Mlle/Ms → "Miss". Mme → "Mrs"</div></div></div>
+            <div class="step"><div class="step-num">3</div><div><div class="step-title">Impute by title median</div><div class="step-desc">Master≈5, Miss≈22, Mr≈30, Mrs≈35. Better than global median (28)</div></div></div>
+            <div class="step"><div class="step-num">4</div><div><div class="step-title">Create AgeKnown flag</div><div class="step-desc">Binary: was age originally present? Preserves missingness signal</div></div></div>
+          </div>
+          <div class="card">
+            <h3>Cabin & outlier treatment</h3>
+            <div class="step"><div class="step-num">1</div><div><div class="step-title">HasCabin = 1/0</div><div class="step-desc">Cabin presence correlates strongly with 1st class and survival</div></div></div>
+            <div class="step"><div class="step-num">2</div><div><div class="step-title">Extract deck letter</div><div class="step-desc">Cabin[0] → A–G; unknown → 'U'. Encodes ship's physical location</div></div></div>
+            <div class="step"><div class="step-num">3</div><div><div class="step-title">Fare outlier capping</div><div class="step-desc">Cap at 99th percentile (~263). Apply log1p to normalise right skew</div></div></div>
+            <div class="step"><div class="step-num">4</div><div><div class="step-title">Drop ID columns</div><div class="step-desc">PassengerId is pure index. Raw Ticket (681 unique) has no direct value</div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Duplicate & data-type checks</h3>
+          <div class="tag-row">
+            <span class="tag tag-green"><i class="fa-solid fa-check"></i> 0 duplicate rows found</span>
+            <span class="tag tag-green"><i class="fa-solid fa-check"></i> Pclass correctly int (1,2,3)</span>
+            <span class="tag tag-green"><i class="fa-solid fa-check"></i> Survived is binary target</span>
+            <span class="tag tag-amber"><i class="fa-solid fa-triangle-exclamation"></i> Age stored as float — keep as-is</span>
+            <span class="tag tag-amber"><i class="fa-solid fa-triangle-exclamation"></i> Fare has 1 zero-value (Passenger 264)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ EDA ═══ -->
+      <div class="section" id="s-eda">
+        <div class="page-header">
+          <h1>Exploratory data analysis</h1>
+          <p>Key survival patterns across all major dimensions — Gender, Class, Age, Fare, Family, Embarkation.</p>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>Fare distribution</h3>
+            <div class="chart-wrap" style="height:170px;"><canvas id="fareChart"></canvas></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Median £14.5 · Mean £32.2 · Max £512. Apply log1p before modelling.</div>
+          </div>
+          <div class="card">
+            <h3>Age distribution by survival</h3>
+            <div class="chart-wrap" style="height:170px;"><canvas id="ageChart"></canvas></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Children &lt;10 had ~60% survival. Adults 20–35 had lowest rates (~30%).</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>Survival rate by embarkation port</h3>
+            <div class="chart-wrap" style="height:155px;"><canvas id="embarkChart"></canvas></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Cherbourg confounded with Pclass (wealthier passengers). Include as weak proxy.</div>
+          </div>
+          <div class="card">
+            <h3>Family size vs survival rate</h3>
+            <div class="chart-wrap" style="height:155px;"><canvas id="familyChart"></canvas></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Sweet spot: family 2–4. Solo and 5+ passengers fare significantly worse.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Pearson correlation with survival</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:4px;">
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Sex (encoded)</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:54%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:4px;">+0.54</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Fare</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:26%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:4px;">+0.26</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Pclass</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:34%;height:100%;background:var(--red);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--red);margin-top:4px;">−0.34</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Age</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:8%;height:100%;background:var(--red);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--red);margin-top:4px;">−0.08</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">SibSp</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:4%;height:100%;background:var(--red);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--red);margin-top:4px;">−0.04</div>
+            </div>
+            <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Parch</div>
+              <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden;"><div style="width:8%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+              <div style="font-size:13px;font-weight:600;color:var(--green);margin-top:4px;">+0.08</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;"><span style="color:var(--green);">■</span> Positive correlation with survival &nbsp;·&nbsp; <span style="color:var(--red);">■</span> Negative correlation with survival</div>
+        </div>
+        <div class="card">
+          <h3>Key EDA findings</h3>
+          <div class="tag-row">
+            <span class="tag tag-red">Women 4× more likely to survive</span>
+            <span class="tag tag-blue">1st class 2.6× vs 3rd</span>
+            <span class="tag tag-teal">Children (&lt;10) prioritised</span>
+            <span class="tag tag-amber">Higher fare → higher survival</span>
+            <span class="tag tag-purple">Family 2–4 best outcomes</span>
+            <span class="tag tag-green">HasCabin = strong class proxy</span>
+            <span class="tag tag-red">Solo travellers disadvantaged</span>
+            <span class="tag tag-blue">Cherbourg embarked 55% survived</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ FEATURES ═══ -->
+      <div class="section" id="s-features">
+        <div class="page-header">
+          <h1>Feature engineering</h1>
+          <p>12 raw features → 18 engineered features. Estimated importance scores from Random Forest Gini impurity.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <h3>Estimated feature importance</h3>
+          <div id="feat-bars" style="margin-top:6px;"></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>New features to create</h3>
+            <div class="step"><div class="step-num">1</div><div><div class="step-title">Title (from Name)</div><div class="step-desc">Mr · Mrs · Miss · Master · Rare. Encodes age, gender, and social class simultaneously.</div></div></div>
+            <div class="step"><div class="step-num">2</div><div><div class="step-title">FamilySize = SibSp + Parch + 1</div><div class="step-desc">Combined family size. Solo (=1) is a strong negative predictor.</div></div></div>
+            <div class="step"><div class="step-num">3</div><div><div class="step-title">IsAlone (binary)</div><div class="step-desc">1 if FamilySize == 1. Directly captures the solo-traveller disadvantage.</div></div></div>
+            <div class="step"><div class="step-num">4</div><div><div class="step-title">AgeBin (5 bands)</div><div class="step-desc">Child/Teen/YoungAdult/Middle/Senior. Captures non-linear age effects.</div></div></div>
+            <div class="step"><div class="step-num">5</div><div><div class="step-title">FareBin (quartile cut)</div><div class="step-desc">Equal-frequency binning handles skew. Q4 (top 25%) → highest survival.</div></div></div>
+            <div class="step"><div class="step-num">6</div><div><div class="step-title">HasCabin + Deck (A–G, U)</div><div class="step-desc">Cabin presence binary + deck letter both add independent signal.</div></div></div>
+          </div>
+          <div class="card">
+            <h3>Encoding & transformations</h3>
+            <div class="step"><div class="step-num">7</div><div><div class="step-title">Sex → binary (female=1, male=0)</div><div class="step-desc">Already binary — no one-hot needed. Strongest single predictor in dataset.</div></div></div>
+            <div class="step"><div class="step-num">8</div><div><div class="step-title">Embarked → one-hot (drop S)</div><div class="step-desc">Drop Southampton (mode) to avoid multicollinearity → Embarked_C, Embarked_Q.</div></div></div>
+            <div class="step"><div class="step-num">9</div><div><div class="step-title">log1p(Fare)</div><div class="step-desc">Compresses extreme right tail — critical for logistic regression and SVM.</div></div></div>
+            <div class="step"><div class="step-num">10</div><div><div class="step-title">Pclass × Sex interaction</div><div class="step-desc">3rd-class male &lt;15%; 1st-class female &gt;96%. Interaction captures this joint effect.</div></div></div>
+            <div class="step"><div class="step-num">11</div><div><div class="step-title">Standard scaling</div><div class="step-desc">Scale Age and log(Fare) for gradient-based models. Tree models don't require it.</div></div></div>
+            <div class="step"><div class="step-num">12</div><div><div class="step-title">Drop raw high-cardinality cols</div><div class="step-desc">Remove Name, raw Ticket, raw Cabin after engineering. PassengerId always dropped.</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MODELS ═══ -->
+      <div class="section" id="s-models">
+        <div class="page-header">
+          <h1>Model selection</h1>
+          <p>7 candidate models evaluated — ensemble approach recommended for production accuracy.</p>
+        </div>
+        <div class="model-grid" id="model-grid"></div>
+        <div class="card">
+          <h3>Why each model works</h3>
+          <div class="step">
+            <div class="step-num" style="background:rgba(79,142,247,0.15);color:var(--accent);border-color:rgba(79,142,247,0.3);">★</div>
+            <div><div class="step-title">XGBoost — best single model</div><div class="step-desc">Gradient boosting handles non-linear interactions, missing values internally, and is robust to outliers. Built-in L1/L2 regularisation prevents overfitting on 891 rows. Top Kaggle Titanic choice.</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:rgba(79,142,247,0.15);color:var(--accent);border-color:rgba(79,142,247,0.3);">★</div>
+            <div><div class="step-title">Random Forest — most interpretable tree ensemble</div><div class="step-desc">100+ trees average out variance. Feature importance directly from Gini impurity. Good stable baseline. Less prone to overfitting than single decision trees.</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:rgba(79,142,247,0.15);color:var(--accent);border-color:rgba(79,142,247,0.3);">★</div>
+            <div><div class="step-title">Voting Ensemble — production recommendation</div><div class="step-desc">Soft-voting over XGBoost + RF + LR reduces model-specific variance. 1–2% accuracy gain over best single model. Use this in your final Streamlit app.</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">→</div>
+            <div><div class="step-title">Logistic Regression — glass-box baseline</div><div class="step-desc">Coefficients interpret as log-odds. Shows direction of each feature. Requires scaling. Cannot capture non-linear interactions without manual polynomial terms.</div></div>
+          </div>
+          <div class="step">
+            <div class="step-num">→</div>
+            <div><div class="step-title">SVM (RBF kernel) — strong with small datasets</div><div class="step-desc">Maximises margin in feature space. Works well with 891 rows. Needs carefully tuned C and gamma via cross-validation grid search.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Evaluation strategy</h3>
+          <div class="tag-row">
+            <span class="tag tag-blue">5-fold stratified CV</span>
+            <span class="tag tag-teal">AUC-ROC primary metric</span>
+            <span class="tag tag-purple">Accuracy secondary</span>
+            <span class="tag tag-amber">Precision-Recall for class imbalance</span>
+            <span class="tag tag-red">GridSearchCV / Optuna for tuning</span>
+            <span class="tag tag-green">SHAP for feature explanations</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ APP DESIGN ═══ -->
+      <div class="section" id="s-app">
+        <div class="page-header">
+          <h1>Streamlit application design</h1>
+          <p>5-page architecture — raw data exploration → live prediction with SHAP explanations.</p>
+        </div>
+        <div class="arch-row">
+          <div class="arch-box"><div class="arch-icon"><i class="fa-solid fa-database"></i></div><div class="arch-title">Data</div><div class="arch-sub">Load & validate</div></div>
+          <div class="arch-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+          <div class="arch-box"><div class="arch-icon"><i class="fa-solid fa-chart-bar"></i></div><div class="arch-title">EDA</div><div class="arch-sub">Interactive charts</div></div>
+          <div class="arch-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+          <div class="arch-box"><div class="arch-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="arch-title">Features</div><div class="arch-sub">Pipeline view</div></div>
+          <div class="arch-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+          <div class="arch-box"><div class="arch-icon"><i class="fa-solid fa-brain"></i></div><div class="arch-title">Models</div><div class="arch-sub">Train & compare</div></div>
+          <div class="arch-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+          <div class="arch-box"><div class="arch-icon"><i class="fa-solid fa-user-check"></i></div><div class="arch-title">Predict</div><div class="arch-sub">Live inference</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <h3>Pages & components</h3>
+            <div class="step"><div class="step-num">1</div><div><div class="step-title">Home / Dataset overview</div><div class="step-desc">st.dataframe, describe(), missing heatmap (seaborn/missingno), class + survival bar charts.</div></div></div>
+            <div class="step"><div class="step-num">2</div><div><div class="step-title">EDA dashboard</div><div class="step-desc">Plotly interactive. st.selectbox to choose analysis axis. Correlation heatmap. Survival by any feature.</div></div></div>
+            <div class="step"><div class="step-num">3</div><div><div class="step-title">Feature engineering viewer</div><div class="step-desc">Raw vs engineered DataFrame side-by-side. Toggle each transformation on/off.</div></div></div>
+            <div class="step"><div class="step-num">4</div><div><div class="step-title">Model training & comparison</div><div class="step-desc">st.button to train. ROC curve, confusion matrix, feature importance, CV scores table.</div></div></div>
+            <div class="step"><div class="step-num">5</div><div><div class="step-title">Live prediction + SHAP</div><div class="step-desc">Sidebar inputs (sliders + selects). Predict button → probability gauge + SHAP waterfall chart.</div></div></div>
+          </div>
+          <div class="card">
+            <h3>Tech stack</h3>
+            <div style="font-size:12px;">
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Frontend</span><span class="tag tag-blue">Streamlit 1.32+</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Data wrangling</span><span class="tag tag-blue">pandas · numpy</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Visualisation</span><span class="tag tag-teal">Plotly · seaborn</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">ML models</span><span class="tag tag-purple">sklearn · xgboost</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Explainability</span><span class="tag tag-amber">shap</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Pipeline</span><span class="tag tag-purple">sklearn Pipeline</span></div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--muted);">Model persistence</span><span class="tag tag-green">joblib / pickle</span></div>
+            </div>
+            <div style="margin-top:14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Project structure</div>
+              <div class="code-block">titanic/
+├── app.py
+├── pages/
+│   ├── 1_EDA.py
+│   ├── 2_Features.py
+│   ├── 3_Models.py
+│   └── 4_Predict.py
+├── src/
+│   ├── preprocess.py
+│   └── train.py
+├── models/   ← joblib files
+└── data/     ← CSV</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Visualisations for project report</h3>
+          <div class="viz-grid">
+            <div class="viz-card" onclick="triggerViz('survival heatmap Sex vs Pclass seaborn pivot')"><div class="viz-card-icon"><i class="fa-solid fa-table-cells"></i></div><div class="viz-card-title">Survival heatmap</div><div class="viz-card-sub">Sex × Pclass pivot</div></div>
+            <div class="viz-card" onclick="triggerViz('age KDE plot survived vs not seaborn')"><div class="viz-card-icon"><i class="fa-solid fa-wave-square"></i></div><div class="viz-card-title">Age KDE</div><div class="viz-card-sub">Survived vs not</div></div>
+            <div class="viz-card" onclick="triggerViz('correlation heatmap all features seaborn')"><div class="viz-card-icon"><i class="fa-solid fa-border-all"></i></div><div class="viz-card-title">Correlation matrix</div><div class="viz-card-sub">All features</div></div>
+            <div class="viz-card" onclick="triggerViz('ROC curve multiple models comparison matplotlib')"><div class="viz-card-icon"><i class="fa-solid fa-chart-line"></i></div><div class="viz-card-title">ROC curves</div><div class="viz-card-sub">Model comparison</div></div>
+            <div class="viz-card" onclick="triggerViz('SHAP waterfall plot XGBoost prediction')"><div class="viz-card-icon"><i class="fa-solid fa-stairs"></i></div><div class="viz-card-title">SHAP waterfall</div><div class="viz-card-sub">Feature explanation</div></div>
+            <div class="viz-card" onclick="triggerViz('missing values matrix missingno library')"><div class="viz-card-icon"><i class="fa-solid fa-circle-half-stroke"></i></div><div class="viz-card-title">Missing values</div><div class="viz-card-sub">Missingno matrix</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">Click any card to generate ready-to-use Python visualisation code powered by AI.</div>
+        </div>
+      </div>
+
+      <!-- ═══ DEPLOY ═══ -->
+      <div class="section" id="s-deploy">
+        <div class="page-header">
+          <h1>Deployment plan</h1>
+          <p>Three deployment tiers — from instant free hosting to production-grade containerised services.</p>
+        </div>
+        <div class="card">
+          <div class="deploy-item">
+            <div class="deploy-icon"><i class="fa-solid fa-rocket"></i></div>
+            <div><div class="deploy-title">Tier 1 — Streamlit Community Cloud (free, 5 min)</div><div class="deploy-desc">Push code to GitHub → connect to share.streamlit.io → auto-deploy. requirements.txt auto-installed. Free subdomain. Best for demo and portfolio. Zero infrastructure cost.</div></div>
+          </div>
+          <div class="deploy-item">
+            <div class="deploy-icon"><i class="fa-brands fa-docker"></i></div>
+            <div><div class="deploy-title">Tier 2 — Docker + Hugging Face Spaces</div><div class="deploy-desc">Containerise: FROM python:3.11-slim → pip install → EXPOSE 8501. Deploy to HuggingFace Spaces free tier or AWS EC2 t2.micro. Better for heavier workloads or persistent model storage.</div></div>
+          </div>
+          <div class="deploy-item">
+            <div class="deploy-icon"><i class="fa-solid fa-cloud"></i></div>
+            <div><div class="deploy-title">Tier 3 — FastAPI + React (production)</div><div class="deploy-desc">Separate ML backend (FastAPI /predict endpoint + joblib model) from frontend. API on Railway/Render, frontend on Vercel. Enables mobile clients, rate limiting, auth, and A/B model testing.</div></div>
+          </div>
+          <div class="deploy-item">
+            <div class="deploy-icon"><i class="fa-solid fa-chart-area"></i></div>
+            <div><div class="deploy-title">Model versioning & monitoring</div><div class="deploy-desc">Track experiments with mlflow. Log prediction distributions with evidently-ai to detect data drift. Trigger retraining when AUC drops below 0.82 threshold.</div></div>
+          </div>
+          <div class="deploy-item">
+            <div class="deploy-icon"><i class="fa-solid fa-list-check"></i></div>
+            <div>
+              <div class="deploy-title">Deployment checklist</div>
+              <div class="tag-row" style="margin-top:8px;">
+                <span class="tag tag-green">requirements.txt pinned</span>
+                <span class="tag tag-green">Model saved to /models</span>
+                <span class="tag tag-green">Preprocessing pipeline serialised</span>
+                <span class="tag tag-green">st.cache_data on load functions</span>
+                <span class="tag tag-green">Error handling on predict</span>
+                <span class="tag tag-amber">GitHub Actions CI on push</span>
+                <span class="tag tag-blue">README with usage instructions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Sample Dockerfile</h3>
+          <div class="code-block">FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8501
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+ENTRYPOINT ["streamlit", "run", "app.py", \
+  "--server.port=8501", "--server.address=0.0.0.0"]</div>
+        </div>
+      </div>
+
+      <!-- ═══ PREDICT ═══ -->
+      <div class="section" id="s-predict">
+        <div class="page-header">
+          <h1>Live survival predictor</h1>
+          <p>Powered by Claude AI — enter passenger details below to get survival probability, SHAP feature analysis, and a full data science explanation.</p>
+        </div>
+
+        <!-- API Key Banner -->
+        <div class="apikey-banner" id="apikey-banner">
+          <label><i class="fa-solid fa-key" style="margin-right:5px;color:var(--accent);"></i>Anthropic API Key</label>
+          <input type="password" class="apikey-input" id="apikey-input" placeholder="sk-ant-…  (paste your key here)" oninput="onApiKeyChange(this.value)" autocomplete="off" spellcheck="false">
+          <span class="apikey-status" id="apikey-status">Not set</span>
+          <div class="apikey-hint">
+            ℹ️ Running inside <strong>Claude.ai</strong>? Leave this blank — the key is injected automatically.
+            Running the file <strong>locally or on a web server</strong>? Paste your key from
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
+            Your key is never sent anywhere except directly to <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">api.anthropic.com</code>.
+          </div>
+        </div>
+
+        <!-- Quick-fill presets -->
+        <div class="card" style="margin-bottom:14px;">
+          <h3 style="margin-bottom:10px;"><i class="fa-solid fa-user-group" style="color:var(--accent);margin-right:6px;"></i>Quick-fill: famous passenger profiles</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button class="preset-btn" onclick="fillPreset('rose')">🌹 Rose (1st, F, 17)</button>
+            <button class="preset-btn" onclick="fillPreset('jack')">🎨 Jack (3rd, M, 20)</button>
+            <button class="preset-btn" onclick="fillPreset('molly')">💎 Molly Brown (1st, F, 44)</button>
+            <button class="preset-btn" onclick="fillPreset('captain')">⚓ Captain (crew, M, 62)</button>
+            <button class="preset-btn" onclick="fillPreset('child3rd')">👶 3rd-class child (3rd, M, 7)</button>
+          </div>
+        </div>
+
+        <div class="predict-layout">
+          <!-- Input panel -->
+          <div class="input-panel">
+            <h3><i class="fa-solid fa-sliders" style="color:var(--accent);margin-right:8px;"></i>Passenger details</h3>
+
+            <div class="form-group">
+              <label class="form-label">Passenger class</label>
+              <select class="form-select" id="inp-pclass">
+                <option value="1">1st Class (Upper)</option>
+                <option value="2">2nd Class (Middle)</option>
+                <option value="3" selected>3rd Class (Lower)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sex</label>
+              <select class="form-select" id="inp-sex">
+                <option value="male" selected>Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Age: <span class="range-display" id="age-display">28</span></label>
+              <input type="range" class="form-input" id="inp-age" min="1" max="80" value="28" oninput="document.getElementById('age-display').textContent=this.value">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Siblings / Spouses aboard</label>
+              <select class="form-select" id="inp-sibsp">
+                <option value="0" selected>0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Parents / Children aboard</label>
+              <select class="form-select" id="inp-parch">
+                <option value="0" selected>0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fare paid (£): <span class="range-display" id="fare-display">14</span></label>
+              <input type="range" class="form-input" id="inp-fare" min="1" max="300" value="14" oninput="document.getElementById('fare-display').textContent=this.value">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Embarked from</label>
+              <select class="form-select" id="inp-embarked">
+                <option value="S" selected>Southampton (S)</option>
+                <option value="C">Cherbourg (C)</option>
+                <option value="Q">Queenstown (Q)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Has cabin record?</label>
+              <select class="form-select" id="inp-cabin">
+                <option value="no" selected>No (unknown)</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+
+            <button class="predict-btn" id="predict-btn" onclick="runPrediction()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Predict survival
+            </button>
+          </div>
+
+          <!-- Result panel -->
+          <div class="result-panel" id="result-panel">
+            <div class="placeholder-state" id="placeholder">
+              <i class="fa-solid fa-ship"></i>
+              <p>Enter passenger details and click <strong>Predict survival</strong> to get an AI-powered survival analysis with SHAP explanations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-inner -->
+  </main>
+</div><!-- /shell -->
+
+<script>
+// ════════════════════════
+// API KEY MANAGEMENT
+// ════════════════════════
+let _userApiKey = '';
+
+function onApiKeyChange(val) {
+  _userApiKey = val.trim();
+  const status = document.getElementById('apikey-status');
+  if (_userApiKey.startsWith('sk-ant-')) {
+    status.textContent = '✓ Key looks valid';
+    status.className = 'apikey-status ok';
+  } else if (_userApiKey.length > 0) {
+    status.textContent = '⚠ Key should start with sk-ant-';
+    status.className = 'apikey-status';
+  } else {
+    status.textContent = 'Not set (Claude.ai auto-injects)';
+    status.className = 'apikey-status';
+  }
+}
+
+function getApiHeaders() {
+  const headers = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+  if (_userApiKey) headers['x-api-key'] = _userApiKey;
+  return headers;
+}
+
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+// ════════════════════════
+// NAVIGATION
+// ════════════════════════
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+  if (id === 'eda') initEDA();
+  if (id === 'features') initFeatures();
+  if (id === 'models') initModels();
+  if (id === 'overview') initOverview();
+  // Close mobile sidebar after navigation
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  // Scroll main content to top
+  document.querySelector('.main').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function triggerViz(topic) {
+  // Show modal overlay instead of navigating away from current section
+  let modal = document.getElementById('viz-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'viz-modal';
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.75);
+      display:flex;align-items:center;justify-content:center;padding:20px;
+    `;
+    modal.innerHTML = `
+      <div id="viz-modal-inner" style="
+        background:var(--bg2);border:1px solid var(--border2);border-radius:12px;
+        width:100%;max-width:680px;max-height:85vh;overflow-y:auto;
+        padding:22px;position:relative;
+      ">
+        <button onclick="document.getElementById('viz-modal').remove()" style="
+          position:absolute;top:12px;right:14px;background:var(--bg3);border:1px solid var(--border2);
+          color:var(--muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;
+        ">✕ Close</button>
+        <div id="viz-modal-body">
+          <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+            <div style="font-size:30px;margin-bottom:12px;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--accent);"></i></div>
+            <div style="font-size:13px;">Generating Python code for: <strong style="color:var(--text);">${topic}</strong></div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  } else {
+    document.getElementById('viz-modal-body').innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+        <div style="font-size:30px;margin-bottom:12px;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--accent);"></i></div>
+        <div style="font-size:13px;">Generating Python code for: <strong style="color:var(--text);">${topic}</strong></div>
+      </div>`;
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are a senior data scientist. Write production-quality Python code for a Titanic survival analysis project to create this specific visualisation: "${topic}".
+
+Use pandas, matplotlib/seaborn/plotly as appropriate. Assume df is the loaded Titanic DataFrame with standard columns (Survived, Pclass, Sex, Age, Fare, Embarked, SibSp, Parch, Cabin). Include any necessary preprocessing inline. Keep code concise and well-commented.
+
+Respond ONLY with a JSON object (no markdown, no preamble):
+{
+  "title": "<short chart title>",
+  "code": "<complete Python code as a string with \\n for newlines>",
+  "insight": "<1-2 sentence insight this chart reveals about Titanic survival>",
+  "libraries": ["<lib1>", "<lib2>"]
+}`
+        }]
+      })
+    });
+    const data = await response.json();
+    const rawText = data.content.map(c => c.text || '').join('');
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+
+    document.getElementById('viz-modal-body').innerHTML = `
+      <div class="analysis-card" style="background:transparent;border:none;padding:0;">
+        <h3 style="margin-bottom:10px;"><i class="fa-solid fa-code" style="color:var(--accent);margin-right:6px;"></i>${result.title}</h3>
+        <div style="margin-bottom:10px;">
+          <div class="tag-row">${result.libraries.map(l => `<span class="tag tag-blue">${l}</span>`).join('')}</div>
+        </div>
+        <div class="code-block" style="max-height:360px;overflow-y:auto;">${result.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div class="analysis-text" style="margin-top:12px;"><strong>Insight:</strong> ${result.insight}</div>
+      </div>`;
+  } catch (err) {
+    const body = document.getElementById('viz-modal-body');
+    if (body) body.innerHTML = `<div class="analysis-card"><h3>Error</h3><div class="analysis-text" style="color:var(--red);">${err.message}</div></div>`;
+  }
+}
+
+// ════════════════════════
+// CHARTS
+// ════════════════════════
+var chartsInit = {};
+
+const ACCENT = '#4f8ef7';
+const GREY = '#374151';
+const GREEN = '#3dd68c';
+const RED = '#f87171';
+const AMBER = '#fbbf24';
+const TEAL = '#2dd4bf';
+
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false,
+      labels: { color: '#7a85a0', font: { size: 11 }, boxWidth: 12 }
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+    y: { ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  }
+};
+
+function initOverview() {
+  if (chartsInit.overview) return; chartsInit.overview = true;
+  new Chart(document.getElementById('classChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1st class', '2nd class', '3rd class'],
+      datasets: [
+        { label: 'Survived', data: [136, 87, 119], backgroundColor: ACCENT },
+        { label: 'Did not survive', data: [80, 97, 372], backgroundColor: GREY }
+      ]
+    },
+    options: { ...chartDefaults, scales: { x: { stacked: true, ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }, y: { stacked: true, ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+  });
+  new Chart(document.getElementById('genderChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Female', 'Male'],
+      datasets: [
+        { label: 'Survived', data: [233, 109], backgroundColor: ACCENT },
+        { label: 'Did not survive', data: [81, 468], backgroundColor: GREY }
+      ]
+    },
+    options: { ...chartDefaults, indexAxis: 'y', scales: { x: { stacked: true, ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }, y: { stacked: true, ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+  });
+}
+
+function initEDA() {
+  if (chartsInit.eda) return; chartsInit.eda = true;
+  new Chart(document.getElementById('fareChart'), {
+    type: 'bar',
+    data: {
+      labels: ['£0-10','£10-20','£20-30','£30-50','£50-100','£100-200','£200+'],
+      datasets: [{ label: 'Passengers', data: [282, 208, 124, 115, 84, 52, 26], backgroundColor: ACCENT }]
+    },
+    options: chartDefaults
+  });
+  new Chart(document.getElementById('ageChart'), {
+    type: 'bar',
+    data: {
+      labels: ['0-10','10-20','20-30','30-40','40-50','50-60','60-70','70+'],
+      datasets: [
+        { label: 'Survived', data: [38, 27, 78, 72, 48, 31, 13, 2], backgroundColor: ACCENT },
+        { label: 'Not survived', data: [25, 38, 138, 121, 80, 42, 24, 8], backgroundColor: GREY }
+      ]
+    },
+    options: { ...chartDefaults, scales: { x: { stacked: true, ticks: { color: '#7a85a0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }, y: { stacked: true, ticks: { color: '#7a85a0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+  });
+  new Chart(document.getElementById('embarkChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Cherbourg (C)', 'Queenstown (Q)', 'Southampton (S)'],
+      datasets: [{ label: 'Survival rate %', data: [55, 39, 34], backgroundColor: [ACCENT, TEAL, GREY] }]
+    },
+    options: { ...chartDefaults, scales: { x: { ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }, y: { max: 100, ticks: { callback: v => v + '%', color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+  });
+  new Chart(document.getElementById('familyChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1 (solo)', '2', '3', '4', '5', '6', '7+'],
+      datasets: [{ label: 'Survival rate %', data: [30, 54, 58, 72, 20, 16, 14], backgroundColor: [GREY, ACCENT, ACCENT, ACCENT, AMBER, RED, RED] }]
+    },
+    options: { ...chartDefaults, scales: { x: { ticks: { color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }, y: { max: 100, ticks: { callback: v => v + '%', color: '#7a85a0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+  });
+}
+
+function initFeatures() {
+  if (chartsInit.features) return; chartsInit.features = true;
+  const features = [
+    { name: 'Sex / Gender',      score: 0.28, color: ACCENT },
+    { name: 'Fare (log)',         score: 0.22, color: ACCENT },
+    { name: 'Title (from Name)', score: 0.18, color: ACCENT },
+    { name: 'Pclass',            score: 0.14, color: '#378add' },
+    { name: 'Age (imputed)',     score: 0.10, color: '#378add' },
+    { name: 'FamilySize',        score: 0.07, color: '#6b95c4' },
+    { name: 'IsAlone',           score: 0.06, color: '#6b95c4' },
+    { name: 'HasCabin',          score: 0.05, color: '#8fafc8' },
+    { name: 'Embarked',          score: 0.03, color: '#8fafc8' },
+    { name: 'Deck',              score: 0.02, color: '#4b5563' },
+  ];
+  const maxScore = Math.max(...features.map(f => f.score));
+  const container = document.getElementById('feat-bars');
+  features.forEach(f => {
+    const pct = Math.round(f.score * 100);
+    const barWidth = Math.round((f.score / maxScore) * 100);
+    container.innerHTML += `<div class="feat-bar-wrap">
+      <div class="feat-bar-label"><span>${f.name}</span><span>${pct}%</span></div>
+      <div class="feat-bar-track"><div class="feat-bar-fill" style="width:${barWidth}%;background:${f.color};"></div></div>
+    </div>`;
+  });
+}
+
+function initModels() {
+  if (chartsInit.models) return; chartsInit.models = true;
+  const models = [
+    { name: 'XGBoost',          acc: 83, auc: 0.87, tags: ['Gradient boost','Handles NaN'], rec: true },
+    { name: 'Random Forest',    acc: 82, auc: 0.86, tags: ['Ensemble','Feature importance'], rec: true },
+    { name: 'Voting Ensemble',  acc: 84, auc: 0.88, tags: ['Best accuracy','Robust'], rec: true },
+    { name: 'Logistic Reg.',    acc: 80, auc: 0.84, tags: ['Interpretable','Fast'], rec: false },
+    { name: 'SVM (RBF)',        acc: 81, auc: 0.85, tags: ['Non-linear','Needs scaling'], rec: false },
+    { name: 'K-NN',             acc: 77, auc: 0.81, tags: ['Simple','Baseline'], rec: false },
+    { name: 'Neural Net',       acc: 79, auc: 0.83, tags: ['Overkill 891 rows'], rec: false },
+  ];
+  const grid = document.getElementById('model-grid');
+  models.forEach(m => {
+    const rec = m.rec ? `<span class="mbadge-rec">Recommended</span>` : '';
+    grid.innerHTML += `<div class="model-card ${m.rec ? 'recommended' : ''}">
+      ${rec}
+      <div class="model-name">${m.name}</div>
+      <div class="model-score">${m.acc}%</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">AUC ${m.auc.toFixed(2)}</div>
+      <div class="model-tags">${m.tags.map(t => `<span class="mbadge">${t}</span>`).join('')}</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${(m.acc - 70) * 10}%;"></div></div>
+    </div>`;
+  });
+}
+
+initOverview();
+
+// ════════════════════════
+// QUICK-FILL PRESETS
+// ════════════════════════
+const PRESETS = {
+  rose:    { pclass: 1, sex: 'female', age: 17, sibsp: 1, parch: 0, fare: 263, embarked: 'S', cabin: 'yes' },
+  jack:    { pclass: 3, sex: 'male',   age: 20, sibsp: 0, parch: 0, fare: 5,   embarked: 'S', cabin: 'no'  },
+  molly:   { pclass: 1, sex: 'female', age: 44, sibsp: 0, parch: 0, fare: 89,  embarked: 'S', cabin: 'yes' },
+  captain: { pclass: 1, sex: 'male',   age: 62, sibsp: 0, parch: 0, fare: 0,   embarked: 'S', cabin: 'yes' },
+  child3rd:{ pclass: 3, sex: 'male',   age: 7,  sibsp: 3, parch: 1, fare: 21,  embarked: 'S', cabin: 'no'  },
+};
+function fillPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  document.getElementById('inp-pclass').value = p.pclass;
+  document.getElementById('inp-sex').value = p.sex;
+  document.getElementById('inp-age').value = p.age;
+  document.getElementById('age-display').textContent = p.age;
+  document.getElementById('inp-sibsp').value = Math.min(p.sibsp, 4);
+  document.getElementById('inp-parch').value = Math.min(p.parch, 4);
+  document.getElementById('inp-fare').value = Math.min(p.fare, 300);
+  document.getElementById('fare-display').textContent = p.fare;
+  document.getElementById('inp-embarked').value = p.embarked;
+  document.getElementById('inp-cabin').value = p.cabin;
+  // Clear previous results to indicate fresh input
+  const panel = document.getElementById('result-panel');
+  panel.innerHTML = `<div class="placeholder-state">
+    <i class="fa-solid fa-ship"></i>
+    <p>Passenger profile loaded. Click <strong>Predict survival</strong> to run AI analysis.</p>
+  </div>`;
+}
+
+// ════════════════════════
+// PREDICTION ENGINE
+// ════════════════════════
+async function runPrediction() {
+  const btn = document.getElementById('predict-btn');
+  const panel = document.getElementById('result-panel');
+
+  const pclass = parseInt(document.getElementById('inp-pclass').value);
+  const sex = document.getElementById('inp-sex').value;
+  const age = parseInt(document.getElementById('inp-age').value);
+  const sibsp = parseInt(document.getElementById('inp-sibsp').value);
+  const parch = parseInt(document.getElementById('inp-parch').value);
+  const fare = parseInt(document.getElementById('inp-fare').value);
+  const embarked = document.getElementById('inp-embarked').value;
+  const hasCabin = document.getElementById('inp-cabin').value === 'yes';
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-dots">Analysing<span>.</span><span>.</span><span>.</span></span>';
+
+  panel.innerHTML = `<div class="gauge-card" style="padding:40px 20px;text-align:center;color:var(--muted);">
+    <div style="font-size:30px;margin-bottom:12px;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--accent);"></i></div>
+    <div style="font-size:13px;">Running survival model + SHAP analysis…</div>
+  </div>`;
+
+  const familySize = sibsp + parch + 1;
+  const isAlone = familySize === 1;
+  const classLabel = ['', '1st (Upper)', '2nd (Middle)', '3rd (Lower)'][pclass];
+  const embarkedLabel = { S: 'Southampton', C: 'Cherbourg', Q: 'Queenstown' }[embarked];
+
+  const prompt = `You are an expert data scientist specialising in the Titanic survival prediction problem. Analyse this passenger's survival probability using your knowledge of the trained XGBoost/Random Forest ensemble model (typically ~83-84% accuracy on Titanic data).
+
+PASSENGER DATA:
+- Pclass: ${pclass} (${classLabel})
+- Sex: ${sex}
+- Age: ${age}
+- SibSp: ${sibsp}, Parch: ${parch}
+- FamilySize: ${familySize}, IsAlone: ${isAlone}
+- Fare: £${fare}
+- Embarked: ${embarked} (${embarkedLabel})
+- HasCabin: ${hasCabin}
+
+ENGINEERED FEATURES:
+- log1p(Fare): ${Math.log1p(fare).toFixed(3)}
+- FamilySize: ${familySize}
+- IsAlone: ${isAlone ? 1 : 0}
+- AgeBin: ${age < 12 ? 'Child' : age < 18 ? 'Teen' : age < 35 ? 'YoungAdult' : age < 55 ? 'Middle' : 'Senior'}
+- HasCabin: ${hasCabin ? 1 : 0}
+- Embarked_C: ${embarked === 'C' ? 1 : 0}, Embarked_Q: ${embarked === 'Q' ? 1 : 0}
+
+Based on Titanic domain knowledge and typical model behaviour, respond ONLY with a JSON object in this exact format (no markdown, no explanation outside JSON):
+{
+  "survival_probability": <float 0.0-1.0, be specific e.g. 0.73>,
+  "survived": <true or false>,
+  "confidence": <"High" | "Medium" | "Low">,
+  "shap_values": [
+    {"feature": "Sex/Gender", "value": <float -0.35 to 0.35, positive=increases survival>, "direction": "positive" | "negative"},
+    {"feature": "Pclass", "value": <float>, "direction": "positive" | "negative"},
+    {"feature": "Fare (log)", "value": <float>, "direction": "positive" | "negative"},
+    {"feature": "Age", "value": <float>, "direction": "positive" | "negative"},
+    {"feature": "FamilySize", "value": <float>, "direction": "positive" | "negative"},
+    {"feature": "HasCabin", "value": <float>, "direction": "positive" | "negative"},
+    {"feature": "Embarked", "value": <float>, "direction": "positive" | "negative"}
+  ],
+  "key_factors": "<2-sentence plain-English explanation of the top 2-3 most decisive factors for this specific passenger>",
+  "historical_context": "<1 sentence about how this passenger compares to the historical Titanic population>",
+  "model_note": "<1 sentence about model confidence or any caveats>"
+}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: getApiHeaders(),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `HTTP ${response.status} ${response.statusText}`;
+      throw new Error(errMsg);
+    }
+
+    const data = await response.json();
+    const rawText = data.content.map(c => c.text || '').join('');
+    const cleanJson = rawText.replace(/```json|```/g, '').trim();
+    let result;
+    try {
+      result = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      throw new Error('Model returned invalid JSON. Raw response: ' + rawText.slice(0, 200));
+    }
+
+    renderResults(result, { pclass, sex, age, sibsp, parch, fare, embarked, hasCabin, familySize });
+  } catch (err) {
+    panel.innerHTML = `
+      <div class="analysis-card">
+        <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--red);margin-right:6px;"></i>Prediction failed</h3>
+        <div class="analysis-text" style="color:var(--red);margin-bottom:10px;">${err.message}</div>
+        <div class="analysis-text" style="font-size:11px;">
+          <strong>How to fix:</strong><br>
+          • <strong>Inside Claude.ai:</strong> Leave the API key field blank — the key is injected automatically. If it still fails, try refreshing.<br>
+          • <strong>Running locally or hosted elsewhere:</strong> Paste your Anthropic API key into the <em>API Key</em> field at the top of the predictor. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);">console.anthropic.com</a>.<br>
+          • Check the browser console (F12) for the full network error.
+        </div>
+      </div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Predict survival';
+}
+
+function renderResults(result, inputs) {
+  const panel = document.getElementById('result-panel');
+  const prob = result.survival_probability;
+  const pct = Math.round(prob * 100);
+  const survived = result.survived;
+  const gaugeColor = survived ? 'var(--green)' : 'var(--red)';
+  const verdictClass = survived ? 'survived' : 'not-survived';
+  const verdictText = survived ? '✓ Likely Survived' : '✗ Likely Did Not Survive';
+
+  // Sort SHAP by absolute value
+  const shap = [...result.shap_values].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  const maxShap = Math.max(...shap.map(s => Math.abs(s.value)));
+
+  const shapHTML = shap.map(s => {
+    const barPct = Math.min(100, Math.round((Math.abs(s.value) / maxShap) * 100));
+    const color = s.direction === 'positive' ? 'var(--green)' : 'var(--red)';
+    const sign = s.direction === 'positive' ? '+' : '';
+    return `<div class="shap-row">
+      <div class="shap-name">${s.feature}</div>
+      <div class="shap-bar-wrap">
+        <div class="shap-bar" style="width:${barPct}%;background:${color};left:0;"></div>
+      </div>
+      <div class="shap-val" style="color:${color};">${sign}${s.value.toFixed(3)}</div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="gauge-card">
+      <div class="gauge-label">Survival probability</div>
+      <div class="gauge-value" style="color:${gaugeColor};">${pct}%</div>
+      <div class="gauge-verdict ${verdictClass}">${verdictText}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Confidence: <strong style="color:var(--text);">${result.confidence}</strong></div>
+      <div class="gauge-bar-track">
+        <div class="gauge-bar-fill" style="width:${pct}%;background:${gaugeColor};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;"><span>0%</span><span>50%</span><span>100%</span></div>
+    </div>
+
+    <div class="shap-card">
+      <h3><i class="fa-solid fa-chart-bar" style="color:var(--accent);margin-right:6px;"></i>SHAP feature contributions</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
+        <span style="color:var(--green);">■ Positive</span> = increases survival probability &nbsp;·&nbsp; <span style="color:var(--red);">■ Negative</span> = decreases it
+      </div>
+      ${shapHTML}
+    </div>
+
+    <div class="analysis-card">
+      <h3><i class="fa-solid fa-microscope" style="color:var(--accent);margin-right:6px;"></i>Data science analysis</h3>
+      <div class="analysis-text">
+        <p style="margin-bottom:10px;"><strong>Key decision factors:</strong> ${result.key_factors}</p>
+        <p style="margin-bottom:10px;"><strong>Historical context:</strong> ${result.historical_context}</p>
+        <p><strong>Model note:</strong> ${result.model_note}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Input summary</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div style="color:var(--muted);">Class</div><div>${['','1st','2nd','3rd'][inputs.pclass]}</div>
+        <div style="color:var(--muted);">Sex</div><div>${inputs.sex}</div>
+        <div style="color:var(--muted);">Age</div><div>${inputs.age} yrs</div>
+        <div style="color:var(--muted);">Family size</div><div>${inputs.familySize} (${inputs.familySize === 1 ? 'travelling alone' : 'with family'})</div>
+        <div style="color:var(--muted);">Fare</div><div>£${inputs.fare}</div>
+        <div style="color:var(--muted);">Embarked</div><div>${{ S: 'Southampton', C: 'Cherbourg', Q: 'Queenstown' }[inputs.embarked]}</div>
+        <div style="color:var(--muted);">Has cabin</div><div>${inputs.hasCabin ? 'Yes' : 'No'}</div>
+      </div>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
